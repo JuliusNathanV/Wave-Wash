@@ -2,17 +2,24 @@
 %taking exponentially distributed particles
 % n = [500,1000,5000,10000,50000];
 %t = time = number of particles sent through
-t = [1000];
-figure
-hold on
+t = [5000];
+% figure
+% hold on
 
 %rho a correlation parameter
 % rho = 0.5; 
 
+%plot distribution function for number of particles in (-inf,x1]x(-inf,y1]
+x1 = 5;
+y1 = 5;
 for l = 1:numel(t)
     %M = number of repeats we do 
-    M = 1000;
-%     s = zeros(1,M);
+    M = 10000;
+
+    %number of particles in process for each interation. 4 rows for x, y,
+    %both, union
+    s = zeros(4,M);
+
     %we make an empirical distribution function 
     x = 0:0.1:10;
     [x0,y0] = meshgrid(x,x);
@@ -24,6 +31,8 @@ for l = 1:numel(t)
     %don't need to keep track of which simulation it's from
     sxList = [];
     syList = [];
+    sBothList = [];
+    sUnionList = [];
     for j = 1:M
         N = t(l);
         
@@ -43,10 +52,27 @@ for l = 1:numel(t)
             Sx = [Sx(Sx(:,1) >= X(i),:); X(i), Y(i)];
             Sy = [Sy(Sy(:,2) >= Y(i),:); X(i), Y(i)];
         end
+        SBoth = intersect(Sx,Sy,'rows');
+        SUnion = union(Sx,Sy,'rows');
+
+        %number of particles in the process in entire region
+        s(1,j) = size(Sx,1);
+        s(2,j) = size(Sy,1);
+        s(3,j) = size(SBoth,1);
+        s(4,j) = size(SUnion,1);
+
+        %alternatively we can do number of particles w x<=x1 and y<=y1
+        s(1,j) = size(Sx(and(Sx(:,1)<=x1,Sx(:,2)<=y1)),1);
+        s(2,j) = size(Sy(and(Sy(:,1)<=x1,Sy(:,2)<=y1)),1);
+        s(3,j) = size(SBoth(and(SBoth(:,1)<=x1,SBoth(:,2)<=y1)),1);
+        s(4,j) = size(SUnion(and(SUnion(:,1)<=x1,SUnion(:,2)<=y1)),1);
+
         sxList = [sxList; Sx];
         syList = [syList; Sy];
-        sBothList = intersect(sxList,syList,'rows');
-        sUnionList = union(sxList,syList,'rows');
+        sBothList = [sBothList; SBoth];
+        sUnionList = [sUnionList; SUnion];
+
+
     end
     
     disp('simulation complete!')
@@ -80,9 +106,11 @@ for l = 1:numel(t)
             distUnion(and(x0 >= sUnionList(k,1),y0 >= sUnionList(k,2))) + 1/M;
     end
     
-    figure
-    surf(x0,y0,distx,'edgecolor','none')
-    figure
-    surf(x0,y0,distBoth,'edgecolor','none')
+%     figure
+%     surf(x0,y0,distx,'edgecolor','none')
+%     figure
+%     surf(x0,y0,distBoth,'edgecolor','none')
 %     plot(x,dist);
+    figure
+    hist(s',[0:1:50])
 end
